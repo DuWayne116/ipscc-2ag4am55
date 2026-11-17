@@ -225,9 +225,13 @@ async function pollJob(id, once){
     if(!once) schedulePoll(id, e.locked?15000:wait);
   }
 }
+function cleanMd(t){   // markdown -> readable plain text (keeps line breaks, bullets as •)
+  return String(t||'').replace(/```[\s\S]*?```/g,' ').replace(/!\[[^\]]*\]\([^)]*\)/g,'').replace(/\[([^\]]+)\]\(([^)]*)\)/g,'$1')
+    .replace(/^\s*#{1,6}\s+/gm,'').replace(/^\s*>\s?/gm,'').replace(/^\s*[*+\-]\s+/gm,'• ').replace(/(\*\*|__|\*|`|~~)/g,'').replace(/\n{3,}/g,'\n\n').trim();
+}
 function speakable(t){
-  t=String(t||'').replace(/```[\s\S]*?```/g,' ').replace(/!\[[^\]]*\]\([^)]*\)/g,' ').replace(/\[([^\]]+)\]\([^)]*\)/g,'$1')
-    .replace(/https?:\/\/\S+/g,'a link').replace(/^\s*(?:[#>*+\-]+|\d+[.)])\s+/gm,'').replace(/[*_`#|~]+/g,'').replace(/\s+/g,' ').trim();
+  t=cleanMd(t).replace(/https?:\/\/\S+/g,'a link').split('\n').map(l=>l.replace(/^•\s*|^\d+[.)]\s+/,'').replace(/[|#_]+/g,' ').trim()).filter(Boolean)
+    .map(l=>/[.!?:;,…]$/.test(l)?l:l+'.').join(' ').replace(/\s+/g,' ').trim();
   if(t.length>850) t=t.slice(0,850).replace(/\s+\S*$/,'')+'… The rest is on screen, sir.';
   return t;
 }
@@ -236,7 +240,7 @@ function announceJob(j){
            :j.status==='failed'?"I'm afraid Pip couldn't complete that, sir. ":'Pip reports back, sir. ';
   const n=(j.files||[]).length, fl=n?` I've put ${n} file${n>1?'s':''} on screen.`:'';
   if(j.status==='needs_approval') toast('⚠ AWAITING YOUR APPROVAL IN THE APP','warn');
-  say(pre+speakable(j.text)+fl, j.text||pre);
+  say(pre+speakable(j.text)+fl, cleanMd(j.text)||pre);
 }
 async function fileBlobUrl(j,f){
   const k=j.id+':'+f.n; if(blobUrls[k]) return blobUrls[k];
@@ -255,7 +259,7 @@ function renderJobCard(j){
   el.querySelector('.jst').textContent=STATUS_LBL[j.status]||j.status.toUpperCase();
   el.querySelector('.jt').textContent=hhmm(j.started);
   el.querySelector('.jc').textContent='▸ '+(j.command||'');
-  el.querySelector('.jtext').textContent=j.text||'';
+  el.querySelector('.jtext').textContent=cleanMd(j.text);
   const fw=el.querySelector('.jfiles'), files=j.files||[];
   if(fw.dataset.n!==String(files.length)){ fw.dataset.n=String(files.length); fw.innerHTML='';
     files.forEach(f=>{

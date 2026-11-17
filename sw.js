@@ -1,8 +1,8 @@
 /* Jarvis · IPS Command Centre service worker.
    Network-first for everything same-origin (so updates show immediately), cache as offline fallback.
    Cross-origin requests (the Jarvis Worker API, xAI, etc.) are NEVER intercepted or cached. */
-const CACHE = 'ipscc-v3.0';
-const SHELL = ['./', 'index.html', 'app.js?v=3.0', 'style.css?v=3.0', 'manifest.webmanifest',
+const CACHE = 'ipscc-v3.0.1';
+const SHELL = ['./', 'index.html', 'app.js?v=3.0.1', 'style.css?v=3.0.1', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png', 'data.json'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
