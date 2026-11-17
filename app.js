@@ -94,7 +94,7 @@ function say(text){
   pauseRec(true);                                   // stop listening BEFORE speaking so Jarvis does not hear himself
   speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); if(voice){u.voice=voice;u.lang=voice.lang;} else u.lang='en-GB';
   u.rate=1.0; u.pitch=.9;
-  u.onstart=()=>setState('speaking');
+  setState('speaking'); u.onstart=()=>setState('speaking');
   u.onend=u.onerror=()=>sayDone();
   clearTimeout(sayGuard); sayGuard=setTimeout(sayDone, 4000+text.length*90);   // safety: Edge sometimes never fires onend
   speechSynthesis.speak(u);
