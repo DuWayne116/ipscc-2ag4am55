@@ -138,3 +138,6 @@ footer{height:38px;border-top:1px solid rgba(63,240,255,.25);overflow:hidden;dis
   .ov-ring{width:260px;height:260px;margin:-130px}
   #start-btn{font-size:15px;padding:14px 28px}
 }
+main>section{min-width:0}
+@media (max-width:1100px){main{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){html,body{overflow-x:hidden}#voice-status{flex-wrap:wrap}#lang-wrap{margin-left:0}}
