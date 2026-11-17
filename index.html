@@ -28,7 +28,19 @@
       <canvas id="core"></canvas>
       <div id="core-label"><div id="state">STANDBY</div><div id="hint">SAY “HEY JARVIS”</div></div>
     </div>
-    <div id="voice-status"><span id="rec-dot"></span><span id="rec-state">MIC IDLE · CLICK INITIALISE</span></div>
+    <div id="voice-status">
+      <span id="rec-dot"></span>
+      <span id="rec-state">MIC IDLE · CLICK INITIALISE</span>
+      <span id="mic-meter" title="Microphone level" aria-hidden="true"><span id="mic-meter-bar"></span></span>
+      <span id="mic-device">INPUT: —</span>
+      <label id="lang-wrap">LANG
+        <select id="lang-sel" aria-label="Recognition language">
+          <option value="en-GB">en-GB</option>
+          <option value="en-US">en-US</option>
+          <option value="en-ZA">en-ZA</option>
+        </select>
+      </label>
+    </div>
     <div id="live"><span class="lbl">HEARING:</span> <span id="hearing">—</span></div>
     <button id="ptt-btn">🎙 TAP TO TALK <small>· OR HOLD SPACEBAR</small></button>
     <div id="transcript"><div class="lbl">COMMAND</div><div id="heard">—</div></div>
@@ -61,6 +73,6 @@
     <small>Click to enable voice &amp; microphone (Chrome / Edge)</small>
   </div>
 </div>
-<script src="app.js"></script>
+<script src="app.js?v=1.2"></script>
 </body>
 </html>

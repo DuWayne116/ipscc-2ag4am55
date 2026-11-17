@@ -1,4 +1,4 @@
-/* IPS PACKAGING // COMMAND CENTRE  -  J.A.R.V.I.S. v1.1 (voice hardened)
+/* IPS PACKAGING // COMMAND CENTRE  -  J.A.R.V.I.S. v1.2 (lang fallback + mic meter)
    Data: data.json (fetched, refreshed every 60s). FALLBACK below is used when
    opened from file:// where browsers block fetch. Keep it in sync or host the page. */
 const FALLBACK = {"_note": "EXAMPLE DATA ONLY - replace with live data. All client/site names below are placeholders.", "updated": "2026-11-17T08:00:00+02:00", "weather": {"location": "Benoni", "temp_c": 24, "condition": "Partly cloudy (EXAMPLE)", "high_c": 27, "low_c": 14, "wind_kmh": 12, "rain_chance": 30}, "loads": [{"site": "EXAMPLE Client A - Edenvale", "type": "40ft HC container - lashing & securing", "loadmaster": "Johan (example)", "time": "08:00", "status": "In progress"}, {"site": "EXAMPLE Client B - Kempton Park", "type": "Flatbed truck - load securing", "loadmaster": "Linton (example)", "time": "10:30", "status": "Scheduled"}, {"site": "EXAMPLE Client C - Germiston", "type": "Export crating - 3 crates", "loadmaster": "Christo (example)", "time": "13:00", "status": "Scheduled"}], "reports": [{"code": "Gre10112026", "site": "EXAMPLE Site", "received": "10 Nov 18:42", "status": "Checked"}, {"code": "Gal13112026", "site": "EXAMPLE Site", "received": "13 Nov 17:05", "status": "Needs review"}, {"code": "Gre16112026", "site": "EXAMPLE Site", "received": "16 Nov 16:20", "status": "New"}], "inbox": {"unread": 12, "top": [{"from": "EXAMPLE Freight Forwarder", "subject": "Quote: 2x 40ft lashing next week", "time": "07:41"}, {"from": "EXAMPLE Supplier", "subject": "Ratchet straps 5t - price update", "time": "06:58"}, {"from": "EXAMPLE Accounts", "subject": "Statement attached", "time": "Mon"}]}, "quotes": [{"name": "EXAMPLE Lead 1", "service": "Export crating", "received": "Today 07:12", "status": "New"}, {"name": "EXAMPLE Lead 2", "service": "Container packing & lashing", "received": "Yesterday", "status": "Draft reply ready"}], "reminders": [{"title": "PAYE EMP201 submission & payment", "due": "2026-12-07", "priority": "high"}, {"title": "EXAMPLE: Invoice follow-up", "due": "2026-11-20", "priority": "medium"}, {"title": "EXAMPLE: Strap & ratchet stock check", "due": "2026-11-24", "priority": "low"}], "stats": {"containers": "2000+", "trucks": "10 000+", "crates": "3000+"}, "ticker": ["IPS PACKAGING // BENONI // EXPORT CRATING // CONTAINER PACKING & LASHING // LOAD SECURING // LOADMASTER SERVICES", "EXAMPLE FEED // replace via data.json"]};
@@ -124,8 +124,19 @@ function handleCommand(cmd){ cmd=cmd.trim(); if(!cmd) return; $('#heard').textCo
 
 /* ---------- voice recognition (wake word + tap to talk) ---------- */
 const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
-const LANGS=['en-ZA','en-GB','en-US']; let langIdx=0;
+const LANGS=['en-GB','en-US','en-ZA'];
+const AUTO_LANGS=['en-GB','en-US'];
+const LANG_KEY='ipscc-lang';
+function readSavedLang(){ try{ const s=localStorage.getItem(LANG_KEY); if(LANGS.includes(s)) return s; }catch(e){} return 'en-GB'; }
+let langIdx=Math.max(0, LANGS.indexOf(readSavedLang()));
+function currentLang(){ return LANGS[langIdx]; }
+function updateLangSel(){ const sel=$('#lang-sel'); if(sel) sel.value=currentLang(); }
+function persistLang(){ try{ localStorage.setItem(LANG_KEY, currentLang()); }catch(e){} }
+
 let recPaused=false, wakeRec=null, wakeStarting=false, restartTimer=null, backoff=300, sessionStart=0, pttRec=null, pendingTimer=null;
+let emptySessions=0, speechTimer=null, sessionHadResult=false, sessionHadAudio=false, switchedThisSession=false;
+let meterStream=null, meterAudio=null, meterAnalyser=null, meterData=null, meterRaf=0;
+
 const WAKE_RE=/\b(?:(?:hey|hi|hay|hai|ok|okay|yo|a)\s+)?(jarvis|jarviss|jarvice|jarvus|jarvas|jarves|jervis|jervas|javis|jarbis|jaavis|garvis|charvis|travis|service|harvest|davis)\b/;
 const norm = s => String(s||'').toLowerCase().replace(/[^a-z0-9' ]+/g,' ').replace(/\s+/g,' ').trim();
 function findWake(alts){ for(const a of alts){ const n=norm(a), m=n.match(WAKE_RE); if(m) return {rest:n.slice(m.index+m[0].length).trim(), text:n}; } return null; }
@@ -135,21 +146,114 @@ function chime(){ try{ const A=window.__ac||(window.__ac=new (window.AudioContex
 function runCmd(txt){ clearTimeout(pendingTimer); pendingTimer=null; awakeUntil=0; txt=norm(txt); const w=txt.match(WAKE_RE); if(w&&w.index<3) txt=txt.slice(w.index+w[0].length).trim(); if(!txt){ setState('standby'); return; } hearing(txt,true); handleCommand(txt); }
 function wake(){ if(Date.now()>awakeUntil) chime(); awakeUntil=Date.now()+8000; setState('listening','GO AHEAD, SIR'); }
 
+function clearSpeechTimer(){ clearTimeout(speechTimer); speechTimer=null; }
+function resetSessionFlags(){ sessionHadResult=false; sessionHadAudio=false; switchedThisSession=false; clearSpeechTimer(); }
+function switchLang(reason){
+  if(switchedThisSession) return currentLang();
+  switchedThisSession=true;
+  emptySessions=0;
+  const from=currentLang();
+  const i=AUTO_LANGS.indexOf(from);
+  const next=i>=0 ? AUTO_LANGS[(i+1)%AUTO_LANGS.length] : AUTO_LANGS[0];
+  langIdx=LANGS.indexOf(next);
+  persistLang();
+  updateLangSel();
+  setRecStatus('NO RESULTS · '+from+' → '+next+(reason?(' · '+reason):''),'warn');
+  return next;
+}
+function armSpeechTimeout(){
+  clearSpeechTimer();
+  speechTimer=setTimeout(()=>{
+    speechTimer=null;
+    if(sessionHadResult||switchedThisSession||!sessionHadAudio) return;
+    switchLang('NO RESULT 6s AFTER SPEECH');
+    if(pttRec){ try{ pttRec.abort(); }catch(e){} }
+    else if(wakeRec){ try{ wakeRec.abort(); }catch(e){} }
+  }, 6000);
+}
+function noteResult(){ sessionHadResult=true; emptySessions=0; clearSpeechTimer(); }
+function noteEmptyEnd(err){
+  if(sessionHadResult){ emptySessions=0; return; }
+  if(switchedThisSession || err==='aborted') return;
+  emptySessions++;
+  if(emptySessions>=2) switchLang('2 EMPTY SESSIONS');
+}
+function setLang(code, manual){
+  const i=LANGS.indexOf(code);
+  if(i<0) return;
+  langIdx=i;
+  persistLang();
+  updateLangSel();
+  emptySessions=0;
+  if(manual){
+    setRecStatus('LANGUAGE SET · '+currentLang(),'ok');
+    if(pttRec){ try{ pttRec.abort(); }catch(e){} }
+    if(wakeRec||wakeStarting){ stopWake(); if(micOn&&!recPaused&&!pttRec) scheduleWake(200); }
+  }
+}
+
+function tickMeter(){
+  meterRaf=requestAnimationFrame(tickMeter);
+  if(!meterAnalyser||!meterData) return;
+  meterAnalyser.getByteTimeDomainData(meterData);
+  let sum=0;
+  for(let i=0;i<meterData.length;i++){ const v=(meterData[i]-128)/128; sum+=v*v; }
+  const pct=Math.min(100, Math.round(Math.sqrt(sum/meterData.length)*280));
+  const bar=$('#mic-meter-bar');
+  if(bar){ bar.style.width=pct+'%'; bar.classList.toggle('hot', pct>=75); bar.classList.toggle('live', pct>=8); }
+}
+async function labelMicDevice(){
+  const el=$('#mic-device');
+  try{
+    const devs=await navigator.mediaDevices.enumerateDevices();
+    const track=meterStream && meterStream.getAudioTracks()[0];
+    const id=track && track.getSettings ? track.getSettings().deviceId : '';
+    const mics=devs.filter(d=>d.kind==='audioinput');
+    const chosen=(id && mics.find(d=>d.deviceId===id)) || mics.find(d=>d.deviceId==='default') || mics[0];
+    const name=(chosen && chosen.label) || (track && track.label) || 'INPUT READY';
+    if(el) el.textContent='INPUT: '+name;
+  }catch(e){ if(el) el.textContent='INPUT: READY'; }
+}
+async function startMeter(){
+  if(meterStream){ if(!meterRaf) tickMeter(); await labelMicDevice(); return true; }
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ setRecStatus('NO MEDIADEVICES (NEEDS HTTPS)','err'); return false; }
+  try{
+    meterStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const AC=window.AudioContext||window.webkitAudioContext;
+    meterAudio=(window.__ac && window.__ac.state!=='closed') ? window.__ac : new AC();
+    window.__ac=meterAudio;
+    if(meterAudio.state==='suspended') await meterAudio.resume();
+    const src=meterAudio.createMediaStreamSource(meterStream);
+    meterAnalyser=meterAudio.createAnalyser();
+    meterAnalyser.fftSize=256;
+    meterAnalyser.smoothingTimeConstant=.7;
+    src.connect(meterAnalyser);
+    meterData=new Uint8Array(meterAnalyser.fftSize);
+    tickMeter();
+    await labelMicDevice();
+    if(navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener('devicechange', labelMicDevice);
+    return true;
+  }catch(e){ setRecStatus('MIC PERMISSION: '+(e.name||e),'err'); $('#hint').textContent='MIC: '+(e.name||'ERROR').toUpperCase(); return false; }
+}
+
 function scheduleWake(delay){ clearTimeout(restartTimer); restartTimer=setTimeout(startWake, delay); }
 function startWake(){
   clearTimeout(restartTimer);
   if(!SR||!micOn||recPaused||pttRec||wakeRec||wakeStarting) return;
-  const r=new SR(); r.lang=LANGS[langIdx]; r.continuous=true; r.interimResults=true; r.maxAlternatives=3;
+  resetSessionFlags();
+  const r=new SR(); r.lang=currentLang(); r.continuous=true; r.interimResults=true; r.maxAlternatives=3;
   r.onstart=()=>{ wakeStarting=false; sessionStart=Date.now(); setRecStatus('LISTENING · '+r.lang,'ok'); };
-  r.onaudiostart=()=>setRecStatus('LISTENING · '+r.lang+' · AUDIO','ok');
+  r.onaudiostart=()=>{ sessionHadAudio=true; setRecStatus('LISTENING · '+r.lang+' · AUDIO','ok'); };
+  r.onspeechstart=()=>armSpeechTimeout();
   r.onresult=e=>{
+    noteResult();
     for(let i=e.resultIndex;i<e.results.length;i++){
       const res=e.results[i], fin=res.isFinal, alts=[]; for(let k=0;k<res.length;k++) alts.push(res[k].transcript);
       const top=alts[0]||''; hearing(top,fin);
       const w=findWake(alts);
       if(w){ wake(); $('#heard').textContent=w.rest||'…';
         clearTimeout(pendingTimer);
-        if(w.rest&&w.rest.length>2){ if(fin) runCmd(w.rest); else { const rest=w.rest; pendingTimer=setTimeout(()=>runCmd(rest),1800); } }  // Edge sometimes never finalises
+        if(w.rest&&w.rest.length>2){ if(fin) runCmd(w.rest); else { const rest=w.rest; pendingTimer=setTimeout(()=>runCmd(rest),1800); } }
       } else if(Date.now()<awakeUntil && norm(top)){ $('#heard').textContent=top; clearTimeout(pendingTimer);
         if(fin) runCmd(top); else { const t=top; pendingTimer=setTimeout(()=>runCmd(t),1800); } }
     }
@@ -158,25 +262,28 @@ function startWake(){
     if(err==='no-speech'||err==='aborted') return;
     setRecStatus('ERROR: '+err.toUpperCase(),'err');
     if(err==='not-allowed'||err==='service-not-allowed'){ micOn=false; updMic(); $('#hint').textContent=location.protocol==='file:'?'MIC NEEDS HTTPS (HOST THE PAGE)':'MIC BLOCKED: '+err.toUpperCase()+' · USE TAP TO TALK / CHECK MIC PERMISSION'; }
-    else if(err==='language-not-supported'&&langIdx<LANGS.length-1){ langIdx++; setRecStatus('LANG '+LANGS[langIdx-1]+' NOT SUPPORTED → '+LANGS[langIdx],'warn'); }
+    else if(err==='language-not-supported'){ switchLang('NOT SUPPORTED'); }
     else $('#hint').textContent='VOICE ERROR: '+err.toUpperCase();
   };
   r.onend=()=>{ if(wakeRec===r) wakeRec=null; wakeStarting=false;
+    clearSpeechTimer();
     if(state==='listening'&&Date.now()>awakeUntil) setState('standby');
     if(!micOn){ setRecStatus('MIC OFF',''); return; }
     if(recPaused||pttRec){ setRecStatus('PAUSED',''); return; }
+    noteEmptyEnd(r._err);
     const lived=Date.now()-sessionStart;
     if(r._err==='network'||r._err==='audio-capture') backoff=Math.min(Math.max(backoff*2,2000),15000);
     else if(r._err==='language-not-supported') backoff=200;
-    else if(lived<1500) backoff=Math.min(backoff*2,8000);          // Edge often ends instantly -> back off
+    else if(lived<1500) backoff=Math.min(backoff*2,8000);
     else backoff=300;
-    setRecStatus('RESTARTING'+(r._err&&r._err!=='no-speech'&&r._err!=='aborted'?' ('+r._err+')':'')+' · '+(backoff/1000).toFixed(1)+'s', r._err&&!/no-speech|aborted/.test(r._err)?'err':'warn');
+    const switched=switchedThisSession ? ' · '+currentLang() : '';
+    setRecStatus((switchedThisSession?'SWITCHED TO '+currentLang()+' · ':'')+'RESTARTING'+(r._err&&r._err!=='no-speech'&&r._err!=='aborted'?' ('+r._err+')':'')+' · '+(backoff/1000).toFixed(1)+'s'+switched, (switchedThisSession|| (r._err&&!/no-speech|aborted/.test(r._err)))?'warn':'warn');
     scheduleWake(backoff);
   };
   wakeRec=r; wakeStarting=true; setRecStatus('STARTING · '+r.lang,'warn');
   try{ r.start(); }catch(e){ wakeRec=null; wakeStarting=false; setRecStatus('START FAILED: '+(e.name||e),'err'); scheduleWake(1000); }
 }
-function stopWake(){ clearTimeout(restartTimer); const r=wakeRec; wakeRec=null; wakeStarting=false; if(r){ try{ r.abort(); }catch(e){} } }
+function stopWake(){ clearTimeout(restartTimer); clearSpeechTimer(); const r=wakeRec; wakeRec=null; wakeStarting=false; if(r){ try{ r.abort(); }catch(e){} } }
 function pauseRec(p){ recPaused=p; if(p) stopWake(); else if(micOn) scheduleWake(250); }
 
 /* tap to talk: one-shot recognition, runs the command directly, no wake word needed */
@@ -185,25 +292,28 @@ function startPTT(){
   if(pttRec) return;
   if('speechSynthesis' in window) speechSynthesis.cancel(); clearTimeout(sayGuard);
   stopWake();
-  const r=new SR(); r.lang=LANGS[langIdx]; r.continuous=false; r.interimResults=true; r.maxAlternatives=3;
+  resetSessionFlags();
+  const r=new SR(); r.lang=currentLang(); r.continuous=false; r.interimResults=true; r.maxAlternatives=3;
   let best='', done=false;
   r.onstart=()=>{ setRecStatus('TAP-TO-TALK · LISTENING · '+r.lang,'ok'); setState('listening','SPEAK NOW, SIR'); };
-  r.onresult=e=>{ for(let i=e.resultIndex;i<e.results.length;i++){ const t=e.results[i][0].transcript; best=t; hearing(t,e.results[i].isFinal); $('#heard').textContent=t; if(e.results[i].isFinal&&!done){ done=true; runCmd(t); } } };
-  r.onerror=e=>{ const err=e.error||'unknown'; if(err==='aborted') return; setRecStatus('TAP-TO-TALK ERROR: '+err.toUpperCase(),'err');
-    if(err==='language-not-supported'&&langIdx<LANGS.length-1) langIdx++;
+  r.onaudiostart=()=>{ sessionHadAudio=true; setRecStatus('TAP-TO-TALK · LISTENING · '+r.lang+' · AUDIO','ok'); };
+  r.onspeechstart=()=>armSpeechTimeout();
+  r.onresult=e=>{ noteResult(); for(let i=e.resultIndex;i<e.results.length;i++){ const t=e.results[i][0].transcript; best=t; hearing(t,e.results[i].isFinal); $('#heard').textContent=t; if(e.results[i].isFinal&&!done){ done=true; runCmd(t); } } };
+  r.onerror=e=>{ const err=e.error||'unknown'; r._err=err; if(err==='aborted') return; setRecStatus('TAP-TO-TALK ERROR: '+err.toUpperCase(),'err');
+    if(err==='language-not-supported') switchLang('NOT SUPPORTED');
     if(err==='not-allowed'||err==='service-not-allowed') $('#hint').textContent='MIC BLOCKED · CHECK MIC PERMISSION'; };
-  r.onend=()=>{ pttRec=null; $('#ptt-btn').classList.remove('on'); if(!done&&best){ done=true; runCmd(best); } else if(!done&&state==='listening') setState('standby');
-    if(!recPaused&&micOn) scheduleWake(400); else if(!micOn) setRecStatus('MIC OFF',''); };
+  r.onend=()=>{ pttRec=null; $('#ptt-btn').classList.remove('on'); clearSpeechTimer();
+    noteEmptyEnd(r && r._err);
+    if(!done&&best){ done=true; runCmd(best); } else if(!done&&state==='listening') setState('standby');
+    if(!recPaused&&micOn) scheduleWake(400); else if(!micOn) setRecStatus('MIC OFF','');
+    if(switchedThisSession) setRecStatus('SWITCHED TO '+currentLang()+' · SAY AGAIN OR TAP TO TALK','warn');
+  };
   pttRec=r; $('#ptt-btn').classList.add('on'); hearing('…');
   try{ r.start(); }catch(e){ pttRec=null; $('#ptt-btn').classList.remove('on'); setRecStatus('TAP-TO-TALK FAILED: '+(e.name||e),'err'); }
 }
 function stopPTT(){ if(pttRec){ try{ pttRec.stop(); }catch(e){} } }
 
-async function askMic(){
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ setRecStatus('NO MEDIADEVICES (NEEDS HTTPS)','err'); return false; }
-  try{ const s=await navigator.mediaDevices.getUserMedia({audio:true}); s.getTracks().forEach(t=>t.stop()); return true; }
-  catch(e){ setRecStatus('MIC PERMISSION: '+(e.name||e),'err'); $('#hint').textContent='MIC: '+(e.name||'ERROR').toUpperCase(); return false; }
-}
+async function askMic(){ return startMeter(); }
 function updMic(){ const b=$('#mic-btn'); b.textContent='🎙 MIC: '+(micOn?'ON':'OFF'); b.classList.toggle('on',micOn); if(state==='standby') setState('standby'); }
 function toggleMic(on){
   micOn = on ?? !micOn;
@@ -220,16 +330,18 @@ $('#start-btn').onclick=async()=>{
   say(`${greetingWord()}, sir. All systems online.`);       // speak inside the click so the browser allows audio
   setRecStatus('REQUESTING MICROPHONE…','warn');
   const ok=await askMic();
-  if(ok){ setRecStatus('MIC GRANTED','ok'); toggleMic(true); } else { micOn=false; updMic(); }
+  if(ok){ setRecStatus('MIC GRANTED · '+currentLang(),'ok'); toggleMic(true); } else { micOn=false; updMic(); }
 };
 $('#mic-btn').onclick=async()=>{ if(!micOn&&!(await askMic())) return; toggleMic(); };
 $('#ptt-btn').onclick=()=>{ pttRec?stopPTT():startPTT(); };
 $('#brief-btn').onclick=()=>handleCommand('brief me');
 $('#typed').addEventListener('keydown',e=>{ if(e.key==='Enter'){ handleCommand(e.target.value); e.target.value=''; } });
 $('#copy-btn').onclick=async e=>{ const t=e.target.dataset.cmd||''; try{ await navigator.clipboard.writeText(t); }catch(_){ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); } e.target.textContent='✓ COPIED — PASTE TO JARVIS IN CHAT'; setTimeout(()=>e.target.textContent='⧉ COPY TO CHAT',2500); };
-const spaceOK=()=>document.activeElement.tagName!=='INPUT'&&$('#overlay').classList.contains('gone');
+const spaceOK=()=>document.activeElement.tagName!=='INPUT'&&document.activeElement.tagName!=='SELECT'&&$('#overlay').classList.contains('gone');
 document.addEventListener('keydown',e=>{ if(e.code==='Space'&&spaceOK()){ e.preventDefault(); if(!e.repeat) startPTT(); } });
 document.addEventListener('keyup',e=>{ if(e.code==='Space'&&spaceOK()){ e.preventDefault(); stopPTT(); } });
+if($('#lang-sel')) $('#lang-sel').addEventListener('change',e=>setLang(e.target.value,true));
+updateLangSel();
 if(!SR){ setRecStatus('SPEECH RECOGNITION NOT AVAILABLE · USE CHROME / EDGE','err'); }
 tick(); setInterval(tick,1000); render(); loadData(); setInterval(loadData,60000);
 resize(); requestAnimationFrame(draw);

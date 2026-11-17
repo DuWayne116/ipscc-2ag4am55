@@ -51,8 +51,16 @@ footer{height:38px;border-top:1px solid rgba(63,240,255,.25);overflow:hidden;dis
 @keyframes spin{to{transform:rotate(360deg)}}
 .ov-box h1{font-size:44px;letter-spacing:.35em;text-shadow:var(--glow)}.ov-box p{letter-spacing:.4em;color:#7fcde6;margin:10px 0 26px}
 #start-btn{position:relative;z-index:1;font-size:18px;padding:14px 40px;letter-spacing:.4em}.ov-box small{display:block;margin-top:16px;color:var(--dim)}
-#voice-status{display:flex;align-items:center;gap:8px;width:100%;margin-top:6px;font-size:11px;letter-spacing:.2em;color:#7fcde6}
+#voice-status{display:flex;align-items:center;gap:8px;width:100%;margin-top:6px;font-size:11px;letter-spacing:.2em;color:#7fcde6;flex-wrap:wrap}
 #rec-dot{width:9px;height:9px;border-radius:50%;background:var(--dim);flex:none}
+#rec-state{flex:1 1 160px;min-width:0}
+#mic-meter{display:inline-block;width:52px;height:10px;border:1px solid rgba(63,240,255,.4);background:rgba(2,12,24,.7);flex:none;position:relative;overflow:hidden}
+#mic-meter-bar{display:block;width:0;height:100%;background:var(--dim);box-shadow:none;transition:width .08s linear}
+#mic-meter-bar.live{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+#mic-meter-bar.hot{background:var(--warn);box-shadow:0 0 6px var(--warn)}
+#mic-device{font-size:9px;letter-spacing:.12em;color:var(--dim);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#lang-wrap{margin-left:auto;font-size:9px;letter-spacing:.15em;color:var(--dim);display:flex;align-items:center;gap:4px;flex:none}
+#lang-sel{padding:2px 6px;font-size:10px;letter-spacing:.08em;cursor:pointer;color:var(--c);background:rgba(8,40,70,.6);border:1px solid rgba(63,240,255,.4)}
 #voice-status.ok #rec-dot{background:var(--ok);box-shadow:0 0 8px var(--ok);animation:blink 1.2s infinite}#voice-status.ok{color:var(--ok)}
 #voice-status.warn #rec-dot{background:var(--warn)}#voice-status.warn{color:var(--warn)}
 #voice-status.err #rec-dot{background:var(--red);box-shadow:0 0 8px var(--red)}#voice-status.err{color:var(--red);font-weight:700}
