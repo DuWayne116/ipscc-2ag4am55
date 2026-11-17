@@ -1,8 +1,11 @@
-/* IPS PACKAGING // COMMAND CENTRE  -  J.A.R.V.I.S. v1.2 (lang fallback + mic meter)
+/* IPS PACKAGING // COMMAND CENTRE  -  J.A.R.V.I.S. v2.0 (AI uplink via Cloudflare Worker -> xAI; local answers = offline fallback)
    Data: data.json (fetched, refreshed every 60s). FALLBACK below is used when
    opened from file:// where browsers block fetch. Keep it in sync or host the page. */
 const FALLBACK = {"_note": "EXAMPLE DATA ONLY - replace with live data. All client/site names below are placeholders.", "updated": "2026-11-17T08:00:00+02:00", "weather": {"location": "Benoni", "temp_c": 24, "condition": "Partly cloudy (EXAMPLE)", "high_c": 27, "low_c": 14, "wind_kmh": 12, "rain_chance": 30}, "loads": [{"site": "EXAMPLE Client A - Edenvale", "type": "40ft HC container - lashing & securing", "loadmaster": "Johan (example)", "time": "08:00", "status": "In progress"}, {"site": "EXAMPLE Client B - Kempton Park", "type": "Flatbed truck - load securing", "loadmaster": "Linton (example)", "time": "10:30", "status": "Scheduled"}, {"site": "EXAMPLE Client C - Germiston", "type": "Export crating - 3 crates", "loadmaster": "Christo (example)", "time": "13:00", "status": "Scheduled"}], "reports": [{"code": "Gre10112026", "site": "EXAMPLE Site", "received": "10 Nov 18:42", "status": "Checked"}, {"code": "Gal13112026", "site": "EXAMPLE Site", "received": "13 Nov 17:05", "status": "Needs review"}, {"code": "Gre16112026", "site": "EXAMPLE Site", "received": "16 Nov 16:20", "status": "New"}], "inbox": {"unread": 12, "top": [{"from": "EXAMPLE Freight Forwarder", "subject": "Quote: 2x 40ft lashing next week", "time": "07:41"}, {"from": "EXAMPLE Supplier", "subject": "Ratchet straps 5t - price update", "time": "06:58"}, {"from": "EXAMPLE Accounts", "subject": "Statement attached", "time": "Mon"}]}, "quotes": [{"name": "EXAMPLE Lead 1", "service": "Export crating", "received": "Today 07:12", "status": "New"}, {"name": "EXAMPLE Lead 2", "service": "Container packing & lashing", "received": "Yesterday", "status": "Draft reply ready"}], "reminders": [{"title": "PAYE EMP201 submission & payment", "due": "2026-12-07", "priority": "high"}, {"title": "EXAMPLE: Invoice follow-up", "due": "2026-11-20", "priority": "medium"}, {"title": "EXAMPLE: Strap & ratchet stock check", "due": "2026-11-24", "priority": "low"}], "stats": {"containers": "2000+", "trucks": "10 000+", "crates": "3000+"}, "ticker": ["IPS PACKAGING // BENONI // EXPORT CRATING // CONTAINER PACKING & LASHING // LOAD SECURING // LOADMASTER SERVICES", "EXAMPLE FEED // replace via data.json"]};
 const TZ = 'Africa/Johannesburg';
+const JARVIS_URL = 'https://ips-jarvis.ipspackaging.workers.dev/chat';   // Cloudflare Worker proxy (holds the xAI key)
+const KEY_STORE = 'ipscc-jarvis-key';
+const HISTORY_TURNS = 10;
 let D = FALLBACK, state = 'standby', micOn = false, rec = null, awakeUntil = 0, voice = null, level = 0;
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -49,10 +52,10 @@ const SA=[-26.19*Math.PI/180, 28.32*Math.PI/180]; // Benoni lat/lon
 function proj(x,y,z,R,rot,tilt){ const c=Math.cos(rot),s=Math.sin(rot); let X=x*c+z*s, Z=-x*s+z*c; const ct=Math.cos(tilt),st=Math.sin(tilt); let Y=y*ct-Z*st; Z=y*st+Z*ct; return [W/2+X*R, H/2-Y*R, Z]; }
 function draw(t){
   t/=1000; cx.clearRect(0,0,W,H);
-  const target = state==='speaking' ? .6+.4*Math.abs(Math.sin(t*9))*Math.random() : state==='listening' ? .35+.25*Math.sin(t*6) : .05;
+  const target = state==='speaking' ? .6+.4*Math.abs(Math.sin(t*9))*Math.random() : state==='listening' ? .35+.25*Math.sin(t*6) : state==='thinking' ? .22+.18*Math.abs(Math.sin(t*14)) : .05;
   level += (target-level)*.12;
   const R = Math.min(W,H)*.30*(1+level*.06), rot=t*.25, tilt=.35;
-  const col = state==='speaking'?'255,200,90':'63,240,255';
+  const col = state==='speaking'?'255,200,90':state==='thinking'?'190,150,255':'63,240,255';
   // glow
   const g=cx.createRadialGradient(W/2,H/2,R*.1,W/2,H/2,R*1.6); g.addColorStop(0,`rgba(${col},${.18+level*.25})`); g.addColorStop(1,'rgba(0,0,0,0)'); cx.fillStyle=g; cx.fillRect(0,0,W,H);
   cx.lineWidth=1;
@@ -87,7 +90,7 @@ let sayGuard=null;
 function sayDone(){ clearTimeout(sayGuard); sayGuard=null; if(state==='speaking') setState('standby'); pauseRec(false); }
 function say(text){
   $('#said').textContent=text;
-  if(!('speechSynthesis' in window)){ return; }
+  if(!('speechSynthesis' in window)){ setState('standby'); return; }
   pauseRec(true);                                   // stop listening BEFORE speaking so Jarvis does not hear himself
   speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); if(voice){u.voice=voice;u.lang=voice.lang;} else u.lang='en-GB';
   u.rate=1.0; u.pitch=.9;
@@ -97,8 +100,8 @@ function say(text){
   speechSynthesis.speak(u);
 }
 const list = (a,f)=> a.length? a.map(f).join('; ') : 'none';
-function answer(cmd){
-  const c=cmd.toLowerCase(); $('#copy-btn').classList.add('hidden');
+function localAnswer(cmd){
+  const c=cmd.toLowerCase();
   const L=D.loads||[], R=D.reports||[], I=D.inbox||{unread:0,top:[]}, Q=D.quotes||[], M=D.reminders||[];
   const loads=()=>`We have ${L.length} load${L.length===1?'':'s'} today, sir: ${list(L,l=>`${l.time}, ${l.type} at ${l.site}, loadmaster ${l.loadmaster}`)}.`;
   const reps=()=>{ const n=R.filter(r=>!/checked/i.test(r.status)); return n.length?`${n.length} report${n.length===1?'':'s'} need attention: ${list(n,r=>`${r.code}, ${r.status}`)}.`:'No new reports from Johan, sir.'; };
@@ -117,7 +120,63 @@ function answer(cmd){
   else if(/stat|how many container|numbers/.test(c)){ const s=D.stats||{}; out=`To date, sir: ${s.containers} containers loaded, ${s.trucks} trucks secured and ${s.crates} crates built.`; }
   else if(/^(hello|hi|hey)\b|are you there|you there/.test(c)) out='At your service, sir.';
   else if(/thank/.test(c)) out='Always a pleasure, sir.';
-  if(!out){ out="I'll pass that on, sir."; const b=$('#copy-btn'); b.dataset.cmd=cmd; b.classList.remove('hidden'); }
+  if(!out) out="I'm in offline mode at the moment, sir, so I can only give you what's on the screen. Try again shortly, or ask me in the Grok Bot app.";
+  return out;
+}
+
+/* ---------- AI uplink (Cloudflare Worker -> xAI) ---------- */
+let history=[], reqSeq=0, keyPromise=null;
+function getKey(){ try{ return localStorage.getItem(KEY_STORE)||''; }catch(e){ return ''; } }
+function setKey(k){ try{ k?localStorage.setItem(KEY_STORE,k):localStorage.removeItem(KEY_STORE); }catch(e){} updLock(); }
+function updLock(){ const b=$('#lock-btn'); if(!b) return; const has=!!getKey(); b.textContent=has?'🔒 LOCK':'🔑 UNLOCK'; b.title=has?'Forget the passphrase on this device':'Enter the passphrase'; }
+function askKey(msg){
+  if(keyPromise) return keyPromise;
+  keyPromise=new Promise(res=>{
+    const m=$('#key-modal'), inp=$('#key-input');
+    $('#key-msg').textContent=msg||'ENTER PASSPHRASE TO CONNECT J.A.R.V.I.S.';
+    inp.value=''; m.classList.remove('hidden'); setTimeout(()=>inp.focus(),60);
+    const done=v=>{ m.classList.add('hidden'); keyPromise=null; $('#key-ok').onclick=$('#key-cancel').onclick=null; inp.onkeydown=null; if(v) setKey(v); res(v||''); };
+    $('#key-ok').onclick=()=>done(inp.value.trim());
+    $('#key-cancel').onclick=()=>done('');
+    inp.onkeydown=e=>{ e.stopPropagation(); if(e.key==='Enter') done(inp.value.trim()); else if(e.key==='Escape') done(''); };
+  });
+  return keyPromise;
+}
+function setOffline(off,why){
+  const s=$('#sysline'); if(!s) return;
+  s.textContent=off?('J.A.R.V.I.S. OFFLINE MODE'+(why?' · '+why:'')):'J.A.R.V.I.S. ONLINE · AI UPLINK';
+  s.classList.toggle('offline',!!off);
+}
+async function callJarvis(cmd){
+  for(let attempt=0; attempt<3; attempt++){
+    let key=getKey();
+    if(!key) key=await askKey(attempt?'PASSPHRASE REJECTED · TRY AGAIN':'ENTER PASSPHRASE TO CONNECT J.A.R.V.I.S.');
+    if(!key){ const e=new Error('LOCKED'); e.why='LOCKED'; throw e; }
+    const ctrl=new AbortController(), to=setTimeout(()=>ctrl.abort(),25000);
+    let r;
+    try{
+      r=await fetch(JARVIS_URL,{method:'POST',headers:{'Content-Type':'application/json','X-Jarvis-Key':key},
+        body:JSON.stringify({messages:[...history.slice(-HISTORY_TURNS*2),{role:'user',content:cmd}],context:D}),signal:ctrl.signal});
+    }catch(e){ const x=new Error('NETWORK'); x.why=e.name==='AbortError'?'TIMEOUT':'NO CONNECTION'; throw x; }
+    finally{ clearTimeout(to); }
+    if(r.status===401){ setKey(''); continue; }
+    if(!r.ok){ const e=new Error('HTTP'); e.why='ERROR '+r.status; throw e; }
+    const j=await r.json().catch(()=>({}));
+    if(!j.reply){ const e=new Error('EMPTY'); e.why='EMPTY REPLY'; throw e; }
+    return j.reply.replace(/[*_#`]+/g,'').replace(/\s+/g,' ').trim();
+  }
+  const e=new Error('LOCKED'); e.why='PASSPHRASE REJECTED'; throw e;
+}
+async function answer(cmd){
+  const seq=++reqSeq, b=$('#copy-btn');
+  b.dataset.cmd=cmd; b.classList.add('hidden');
+  setState('thinking','PROCESSING, SIR'); $('#said').textContent='…';
+  let out, online=true, why='';
+  try{ out=await callJarvis(cmd); }catch(e){ online=false; why=e.why||''; out=localAnswer(cmd); }
+  if(seq!==reqSeq) return;                         // a newer command superseded this one
+  setOffline(!online,why);
+  if(online){ history.push({role:'user',content:cmd},{role:'assistant',content:out}); history=history.slice(-HISTORY_TURNS*2); }
+  b.classList.remove('hidden');
   say(out);
 }
 function handleCommand(cmd){ cmd=cmd.trim(); if(!cmd) return; $('#heard').textContent=cmd; answer(cmd); }
@@ -331,13 +390,16 @@ $('#start-btn').onclick=async()=>{
   setRecStatus('REQUESTING MICROPHONE…','warn');
   const ok=await askMic();
   if(ok){ setRecStatus('MIC GRANTED · '+currentLang(),'ok'); toggleMic(true); } else { micOn=false; updMic(); }
+  if(!getKey()) askKey('ENTER PASSPHRASE TO CONNECT J.A.R.V.I.S.');
 };
 $('#mic-btn').onclick=async()=>{ if(!micOn&&!(await askMic())) return; toggleMic(); };
 $('#ptt-btn').onclick=()=>{ pttRec?stopPTT():startPTT(); };
 $('#brief-btn').onclick=()=>handleCommand('brief me');
 $('#typed').addEventListener('keydown',e=>{ if(e.key==='Enter'){ handleCommand(e.target.value); e.target.value=''; } });
-$('#copy-btn').onclick=async e=>{ const t=e.target.dataset.cmd||''; try{ await navigator.clipboard.writeText(t); }catch(_){ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); } e.target.textContent='✓ COPIED — PASTE TO JARVIS IN CHAT'; setTimeout(()=>e.target.textContent='⧉ COPY TO CHAT',2500); };
-const spaceOK=()=>document.activeElement.tagName!=='INPUT'&&document.activeElement.tagName!=='SELECT'&&$('#overlay').classList.contains('gone');
+$('#copy-btn').onclick=async e=>{ const t=e.target.dataset.cmd||''; try{ await navigator.clipboard.writeText(t); }catch(_){ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); } e.target.textContent='✓ COPIED'; setTimeout(()=>e.target.textContent='⧉ COPY TO CHAT',2500); };
+$('#lock-btn').onclick=()=>{ if(getKey()){ setKey(''); history=[]; setOffline(true,'LOCKED'); say('Locked, sir. Passphrase cleared from this device.'); } else askKey('ENTER PASSPHRASE TO CONNECT J.A.R.V.I.S.'); };
+updLock();
+const spaceOK=()=>document.activeElement.tagName!=='INPUT'&&document.activeElement.tagName!=='SELECT'&&$('#overlay').classList.contains('gone')&&$('#key-modal').classList.contains('hidden');
 document.addEventListener('keydown',e=>{ if(e.code==='Space'&&spaceOK()){ e.preventDefault(); if(!e.repeat) startPTT(); } });
 document.addEventListener('keyup',e=>{ if(e.code==='Space'&&spaceOK()){ e.preventDefault(); stopPTT(); } });
 if($('#lang-sel')) $('#lang-sel').addEventListener('change',e=>setLang(e.target.value,true));

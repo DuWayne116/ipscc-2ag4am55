@@ -37,7 +37,7 @@ button,input{font:inherit;color:var(--c);background:rgba(8,40,70,.6);border:1px 
 button:hover{background:rgba(63,240,255,.15);box-shadow:var(--glow)}
 input{flex:1;cursor:text;outline:none}
 #mic-btn.on{color:var(--ok);border-color:var(--ok)}
-#copy-btn{margin-top:6px;color:var(--warn);border-color:var(--warn)}.hidden{display:none}
+#copy-btn{margin-top:4px;padding:2px 8px;font-size:9px;letter-spacing:.12em;color:var(--dim);border-color:rgba(63,240,255,.25);background:transparent;opacity:.75}#copy-btn:hover{opacity:1;color:var(--c)}.hidden{display:none}
 .stats{display:flex;gap:12px;width:100%;margin-top:12px}
 .stat{flex:1;text-align:center;border:1px solid rgba(63,240,255,.3);padding:8px;background:rgba(8,40,70,.4)}
 .stat .n{font-size:28px;font-weight:800;text-shadow:var(--glow)}.stat .l{font-size:10px;letter-spacing:.25em;color:#7fcde6}
@@ -70,3 +70,16 @@ footer{height:38px;border-top:1px solid rgba(63,240,255,.25);overflow:hidden;dis
 #ptt-btn small{font-size:10px;font-weight:400;letter-spacing:.2em;color:#7fcde6}
 #ptt-btn.on{color:#01050c;background:var(--ok);border-color:var(--ok);box-shadow:0 0 18px var(--ok)}#ptt-btn.on small{color:#01050c}
 @media (max-width:1100px){html,body{overflow:auto}main{grid-template-columns:1fr;height:auto}#core-wrap{height:380px;flex:none}.stream{display:none}}
+
+.sys.offline{color:var(--warn);animation:none}
+#lock-btn{flex:none}
+#key-modal{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(1,6,14,.85);backdrop-filter:blur(3px)}
+#key-modal.hidden{display:none}
+.km-box{position:relative;width:min(420px,92vw);padding:26px 28px 20px;border:1px solid rgba(63,240,255,.5);background:linear-gradient(135deg,rgba(8,40,70,.92),rgba(2,12,24,.95));clip-path:polygon(0 0,calc(100% - 20px) 0,100% 20px,100% 100%,20px 100%,0 calc(100% - 20px));box-shadow:inset 0 0 30px rgba(26,168,255,.2);text-align:center;animation:fadein .4s both}
+.km-box::before{content:"";position:absolute;left:0;top:0;width:60px;height:2px;background:var(--c);box-shadow:var(--glow)}
+.km-box h3{font-size:22px;letter-spacing:.35em;margin:8px 0 6px;text-shadow:var(--glow)}
+#key-msg{font-size:11px;letter-spacing:.25em;color:var(--warn);margin-bottom:14px;min-height:14px}
+#key-input{width:100%;text-align:center;font-size:16px;letter-spacing:.3em;padding:10px}
+.km-btns{display:flex;gap:10px;margin-top:14px}.km-btns button{flex:1}
+#key-ok{color:var(--ok);border-color:var(--ok)}
+.km-box small{display:block;margin-top:12px;font-size:9px;letter-spacing:.2em;color:var(--dim)}
