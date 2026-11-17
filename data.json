@@ -1,6 +1,6 @@
 {
   "_note": "Loads, reports, quotes and weather are EXAMPLE placeholders. Inbox and reminders are live counts only; private detail is behind the passphrase.",
-  "updated": "2026-11-17T10:28:00+02:00",
+  "updated": "2026-11-17T10:48:09+02:00",
   "weather": {
     "location": "Benoni",
     "temp_c": 24,
@@ -93,11 +93,6 @@
       "title": "Registration fee due (ask Jarvis)",
       "due": "2026-12-01",
       "priority": "medium"
-    },
-    {
-      "title": "PAYE EMP201 submission & payment",
-      "due": "2026-12-07",
-      "priority": "high"
     }
   ],
   "stats": {
