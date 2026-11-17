@@ -3,10 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="robots" content="noindex,nofollow">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#020a16">
+<meta name="description" content="IPS Packaging Command Centre · J.A.R.V.I.S.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Jarvis">
 <title>IPS PACKAGING // COMMAND CENTRE</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><circle cx=%228%22 cy=%228%22 r=%226%22 fill=%22none%22 stroke=%22%233ff0ff%22 stroke-width=%222%22/></svg>">
-<link rel="stylesheet" href="style.css?v=2.2">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png"><circle cx=%228%22 cy=%228%22 r=%226%22 fill=%22none%22 stroke=%22%233ff0ff%22 stroke-width=%222%22/></svg>">
+<link rel="stylesheet" href="style.css?v=3.0">
 </head>
 <body>
 <div id="bg-grid"></div>
@@ -20,6 +28,7 @@
   <section class="col left">
     <div class="panel" id="p-loads"><h2><span>01</span> TODAY'S LOADS</h2><div class="body"></div></div>
     <div class="panel" id="p-reports"><h2><span>02</span> NEW LOAD REPORTS · JOHAN</h2><div class="body"></div></div>
+    <div class="panel" id="p-jobs"><h2><span>08</span> RECENT JOBS · PIP</h2><div class="body"><div class="b">UNLOCK TO SEE JOBS</div></div></div>
     <div class="panel stream"><h2><span>03</span> DATA STREAM</h2><div class="streambox"><div class="streamtext" id="stream-l"></div></div></div>
   </section>
 
@@ -46,6 +55,7 @@
     <div id="transcript"><div class="lbl">COMMAND</div><div id="heard">—</div></div>
     <div id="reply"><div class="lbl">JARVIS</div><div id="said">—</div>
       <button id="copy-btn" class="hidden" title="Copy your command to paste into Jarvis in the Grok Bot app">⧉ COPY TO CHAT</button></div>
+    <div id="job-cards"></div>
     <div id="controls">
       <button id="mic-btn">🎙 MIC: OFF</button>
       <button id="brief-btn">▶ BRIEF ME</button>
@@ -74,6 +84,7 @@
     <small>Click to enable voice &amp; microphone (Chrome / Edge)</small>
   </div>
 </div>
+<div id="lightbox" class="hidden" title="Click to close"><img alt=""><div class="lb-name"></div></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="key-modal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="key-title">
   <div class="km-box">
@@ -85,6 +96,6 @@
     <small>Stored on this device only · use LOCK to clear it</small>
   </div>
 </div>
-<script src="app.js?v=2.2"></script>
+<script src="app.js?v=3.0"></script>
 </body>
 </html>
