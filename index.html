@@ -1,101 +1,16 @@
 <!DOCTYPE html>
-<html lang="en-GB">
-<head>
-<meta charset="utf-8">
-<meta name="robots" content="noindex,nofollow">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#020a16">
-<meta name="description" content="IPS Packaging Command Centre · J.A.R.V.I.S.">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Jarvis">
-<title>IPS PACKAGING // COMMAND CENTRE</title>
-<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
-<link rel="stylesheet" href="style.css?v=3.0.2">
-</head>
-<body>
-<div id="bg-grid"></div>
-<header id="top">
-  <div class="brand"><span class="logo">◈</span> IPS PACKAGING <span class="sep">//</span> COMMAND CENTRE</div>
-  <div class="sys" id="sysline">J.A.R.V.I.S. ONLINE</div>
-  <div class="clock"><div id="clock-time">--:--:--</div><div id="clock-date">---</div><div class="tz">SAST · AFRICA/JOHANNESBURG</div></div>
-</header>
-
-<main id="hud">
-  <section class="col left">
-    <div class="panel" id="p-loads"><h2><span>01</span> TODAY'S LOADS</h2><div class="body"></div></div>
-    <div class="panel" id="p-reports"><h2><span>02</span> NEW LOAD REPORTS · JOHAN</h2><div class="body"></div></div>
-    <div class="panel" id="p-jobs"><h2><span>08</span> RECENT JOBS · PIP</h2><div class="body"><div class="b">UNLOCK TO SEE JOBS</div></div></div>
-    <div class="panel stream"><h2><span>03</span> DATA STREAM</h2><div class="streambox"><div class="streamtext" id="stream-l"></div></div></div>
-  </section>
-
-  <section class="centre">
-    <div id="core-wrap">
-      <canvas id="core"></canvas>
-      <div id="core-label"><div id="state">STANDBY</div><div id="hint">SAY “HEY JARVIS”</div></div>
-    </div>
-    <div id="voice-status">
-      <span id="rec-dot"></span>
-      <span id="rec-state">MIC IDLE · CLICK INITIALISE</span>
-      <span id="mic-meter" title="Microphone level" aria-hidden="true"><span id="mic-meter-bar"></span></span>
-      <span id="mic-device">INPUT: —</span>
-      <label id="lang-wrap">LANG
-        <select id="lang-sel" aria-label="Recognition language">
-          <option value="en-GB">en-GB</option>
-          <option value="en-US">en-US</option>
-          <option value="en-ZA">en-ZA</option>
-        </select>
-      </label>
-    </div>
-    <div id="live"><span class="lbl">HEARING:</span> <span id="hearing">—</span></div>
-    <button id="ptt-btn">🎙 TAP TO TALK <small>· OR HOLD SPACEBAR</small></button>
-    <div id="transcript"><div class="lbl">COMMAND</div><div id="heard">—</div></div>
-    <div id="reply"><div class="lbl">JARVIS</div><div id="said">—</div>
-      <button id="copy-btn" class="hidden" title="Copy your command to paste into Jarvis in the Grok Bot app">⧉ COPY TO CHAT</button></div>
-    <div id="job-cards"></div>
-    <div id="controls">
-      <button id="mic-btn">🎙 MIC: OFF</button>
-      <button id="brief-btn">▶ BRIEF ME</button>
-      <button id="lock-btn" title="Forget the passphrase on this device">🔒 LOCK</button>
-      <input id="typed" placeholder="or type anything to Jarvis…" autocomplete="off">
-    </div>
-    <div class="stats" id="p-stats"></div>
-  </section>
-
-  <section class="col right">
-    <div class="panel" id="p-weather"><h2><span>04</span> ENVIRONMENT · BENONI</h2><div class="body"></div></div>
-    <div class="panel" id="p-inbox"><h2><span>05</span> WORK INBOX</h2><div class="body"></div></div>
-    <div class="panel" id="p-quotes"><h2><span>06</span> WEBSITE QUOTE REQUESTS</h2><div class="body"></div></div>
-    <div class="panel" id="p-reminders"><h2><span>07</span> REMINDERS · DEADLINES</h2><div class="body"></div></div>
-  </section>
-</main>
-
-<footer><div class="ticker"><div id="ticker-text"></div></div></footer>
-
-<div id="overlay">
-  <div class="ov-box">
-    <div class="ov-ring"></div>
-    <h1>IPS PACKAGING</h1>
-    <p>COMMAND CENTRE · J.A.R.V.I.S.</p>
-    <button id="start-btn">INITIALISE</button>
-    <small>Click to enable voice &amp; microphone (Chrome / Edge)</small>
-  </div>
-</div>
-<div id="lightbox" class="hidden" title="Click to close"><img alt=""><div class="lb-name"></div></div>
-<div id="toast" role="status" aria-live="polite"></div>
-<div id="key-modal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="key-title">
-  <div class="km-box">
-    <div class="lbl">SECURITY CLEARANCE REQUIRED</div>
-    <h3 id="key-title">J.A.R.V.I.S. UPLINK</h3>
-    <p id="key-msg">ENTER PASSPHRASE</p>
-    <input id="key-input" type="password" autocomplete="current-password" placeholder="passphrase" aria-label="Passphrase">
-    <div class="km-btns"><button id="key-ok">AUTHORISE</button><button id="key-cancel">CANCEL</button></div>
-    <small>Stored on this device only · use LOCK to clear it</small>
-  </div>
-</div>
-<script src="app.js?v=3.0.2"></script>
-</body>
-</html>
+<html lang="en-GB"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jarvis has moved</title>
+<meta http-equiv="refresh" content="6;url=https://ips-jarvis.ipspackaging.workers.dev/">
+<style>html,body{height:100%;margin:0;background:#020a16;color:#3ff0ff;font-family:"Segoe UI",Consolas,monospace;display:flex;align-items:center;justify-content:center;text-align:center}
+.b{padding:28px;border:1px solid rgba(63,240,255,.4);max-width:520px}h1{letter-spacing:.3em;font-size:22px}a{color:#4dffa6;font-size:18px}p{color:#9fe9ff;line-height:1.5}</style>
+<script>
+// clear the old v3 service worker + cache so this device stops loading the old Command Centre
+if('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()));
+if(window.caches) caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));
+</script></head>
+<body><div class="b"><h1>JARVIS HAS MOVED</h1>
+<p>The IPS Command Centre now lives at a new address, synced across your phone, laptop and Telegram.</p>
+<p><a href="https://ips-jarvis.ipspackaging.workers.dev/">ips-jarvis.ipspackaging.workers.dev</a></p>
+<p style="font-size:12px">Taking you there in a few seconds… If you installed the old app, remove it and install from the new address.</p></div></body></html>
