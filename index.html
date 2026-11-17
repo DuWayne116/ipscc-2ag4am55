@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IPS PACKAGING // COMMAND CENTRE</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><circle cx=%228%22 cy=%228%22 r=%226%22 fill=%22none%22 stroke=%22%233ff0ff%22 stroke-width=%222%22/></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="bg-grid"></div>
+<header id="top">
+  <div class="brand"><span class="logo">◈</span> IPS PACKAGING <span class="sep">//</span> COMMAND CENTRE</div>
+  <div class="sys" id="sysline">J.A.R.V.I.S. ONLINE</div>
+  <div class="clock"><div id="clock-time">--:--:--</div><div id="clock-date">---</div><div class="tz">SAST · AFRICA/JOHANNESBURG</div></div>
+</header>
+
+<main id="hud">
+  <section class="col left">
+    <div class="panel" id="p-loads"><h2><span>01</span> TODAY'S LOADS</h2><div class="body"></div></div>
+    <div class="panel" id="p-reports"><h2><span>02</span> NEW LOAD REPORTS · JOHAN</h2><div class="body"></div></div>
+    <div class="panel stream"><h2><span>03</span> DATA STREAM</h2><div class="streambox"><div class="streamtext" id="stream-l"></div></div></div>
+  </section>
+
+  <section class="centre">
+    <div id="core-wrap">
+      <canvas id="core"></canvas>
+      <div id="core-label"><div id="state">STANDBY</div><div id="hint">SAY “HEY JARVIS”</div></div>
+    </div>
+    <div id="transcript"><div class="lbl">COMMAND</div><div id="heard">—</div></div>
+    <div id="reply"><div class="lbl">JARVIS</div><div id="said">—</div>
+      <button id="copy-btn" class="hidden">⧉ COPY TO CHAT</button></div>
+    <div id="controls">
+      <button id="mic-btn">🎙 MIC: OFF</button>
+      <button id="brief-btn">▶ BRIEF ME</button>
+      <input id="typed" placeholder="or type a command…" autocomplete="off">
+    </div>
+    <div class="stats" id="p-stats"></div>
+  </section>
+
+  <section class="col right">
+    <div class="panel" id="p-weather"><h2><span>04</span> ENVIRONMENT · BENONI</h2><div class="body"></div></div>
+    <div class="panel" id="p-inbox"><h2><span>05</span> WORK INBOX</h2><div class="body"></div></div>
+    <div class="panel" id="p-quotes"><h2><span>06</span> WEBSITE QUOTE REQUESTS</h2><div class="body"></div></div>
+    <div class="panel" id="p-reminders"><h2><span>07</span> REMINDERS · DEADLINES</h2><div class="body"></div></div>
+  </section>
+</main>
+
+<footer><div class="ticker"><div id="ticker-text"></div></div></footer>
+
+<div id="overlay">
+  <div class="ov-box">
+    <div class="ov-ring"></div>
+    <h1>IPS PACKAGING</h1>
+    <p>COMMAND CENTRE · J.A.R.V.I.S.</p>
+    <button id="start-btn">INITIALISE</button>
+    <small>Click to enable voice &amp; microphone (Chrome / Edge)</small>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
