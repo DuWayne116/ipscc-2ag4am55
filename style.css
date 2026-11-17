@@ -83,3 +83,6 @@ footer{height:38px;border-top:1px solid rgba(63,240,255,.25);overflow:hidden;dis
 .km-btns{display:flex;gap:10px;margin-top:14px}.km-btns button{flex:1}
 #key-ok{color:var(--ok);border-color:var(--ok)}
 .km-box small{display:block;margin-top:12px;font-size:9px;letter-spacing:.2em;color:var(--dim)}
+#toast{position:fixed;left:50%;bottom:56px;transform:translate(-50%,20px);opacity:0;pointer-events:none;z-index:15;padding:10px 22px;font-size:12px;font-weight:700;letter-spacing:.25em;border:1px solid var(--ok);color:var(--ok);background:rgba(2,20,16,.92);box-shadow:0 0 18px rgba(77,255,166,.35);transition:opacity .3s,transform .3s}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toast.err{border-color:var(--red);color:var(--red);background:rgba(30,4,10,.92);box-shadow:0 0 18px rgba(255,77,109,.35)}
