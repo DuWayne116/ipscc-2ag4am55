@@ -1,6 +1,6 @@
 {
   "_note": "Loads, reports, quotes and weather are EXAMPLE placeholders. Inbox and reminders are live counts only; private detail is behind the passphrase.",
-  "updated": "2026-11-17T10:48:09+02:00",
+  "updated": "2026-11-20T07:30:00+02:00",
   "weather": {
     "location": "Benoni",
     "temp_c": 24,
@@ -54,10 +54,10 @@
     }
   ],
   "inbox": {
-    "urgent": 3,
-    "needs_reply": 7,
-    "source": "work inbox scan",
-    "as_of": "17 Nov 10:28"
+    "urgent": 2,
+    "needs_reply": 3,
+    "source": "07:13 inbox sort, no fresh webmail read",
+    "as_of": "20 Nov 07:30"
   },
   "quotes": [
     {
